@@ -16,7 +16,8 @@ jobs:
       - run: flutter create . --platforms=android --project-name smart_quiz
       - name: Add internet permission
         run: |
-          sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          sed -i '0,/<application/s|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          grep INTERNET android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
       - run: flutter build apk --release --dart-define=ANTHROPIC_KEY=${{ secrets.ANTHROPIC_KEY }}
       - uses: actions/upload-artifact@v4
