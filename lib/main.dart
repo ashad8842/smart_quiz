@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+// Holds your Gemini key (secret name stays ANTHROPIC_KEY).
 const apiKey = String.fromEnvironment('ANTHROPIC_KEY');
-const model = 'claude-sonnet-5-5';
 
 void main() => runApp(const MyApp());
 
@@ -38,45 +38,50 @@ Future<List<Question>> generateQuestions({
   File? image,
   int count = 10,
 }) async {
-  final content = <Map<String, dynamic>>[];
+  final parts = <Map<String, dynamic>>[];
   if (image != null) {
     final isPng = image.path.toLowerCase().endsWith('.png');
-    content.add({
-      'type': 'image',
-      'source': {
-        'type': 'base64',
-        'media_type': isPng ? 'image/png' : 'image/jpeg',
+    parts.add({
+      'inline_data': {
+        'mime_type': isPng ? 'image/png' : 'image/jpeg',
         'data': base64Encode(await image.readAsBytes()),
       },
     });
   }
-  final task = image != null
-      ? 'Create $count multiple-choice questions from the content of this image.'
-      : 'Create $count multiple-choice questions for: $prompt';
-  content.add({'type': 'text', 'text': task});
+  parts.add({
+    'text': image != null
+        ? 'Create $count multiple-choice questions from the content of this image.'
+        : 'Create $count multiple-choice questions for: $prompt',
+  });
 
   final res = await http.post(
-    Uri.parse('https://api.anthropic.com/v1/messages'),
+    Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'),
     headers: {
       'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'x-goog-api-key': apiKey,
     },
     body: jsonEncode({
-      'model': model,
-      'max_tokens': 4000,
-      'system': 'You are a quiz writer. Reply with ONLY a JSON array, no '
-          'markdown. Each item: {"question": str, "options": [4 strings], '
-          '"answer": index 0-3, "explanation": short str}.',
-      'messages': [
-        {'role': 'user', 'content': content}
+      'systemInstruction': {
+        'parts': [
+          {
+            'text': 'You are a quiz writer. Reply with ONLY a JSON array. '
+                'Each item: {"question": str, "options": [4 strings], '
+                '"answer": index 0-3, "explanation": short str}.'
+          }
+        ]
+      },
+      'contents': [
+        {'parts': parts}
       ],
+      'generationConfig': {'responseMimeType': 'application/json'},
     }),
   );
   if (res.statusCode != 200) {
     throw Exception('API error ${res.statusCode}: ${res.body}');
   }
-  final text = jsonDecode(res.body)['content'][0]['text'] as String;
+  final text = jsonDecode(res.body)['candidates'][0]['content']['parts'][0]
+      ['text'] as String;
   final json = text.substring(text.indexOf('['), text.lastIndexOf(']') + 1);
   return (jsonDecode(json) as List).map((e) => Question.fromJson(e)).toList();
 }
@@ -194,42 +199,4 @@ class _QuizScreenState extends State<QuizScreen> {
     }
     final q = qs[_i];
     return Scaffold(
-      appBar: AppBar(title: Text('Question ${_i + 1} / ${qs.length}')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Text(q.question, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 16),
-        for (var k = 0; k < q.options.length; k++)
-          Card(
-            color: _picked == null
-                ? null
-                : k == q.answer
-                    ? Colors.green.shade100
-                    : k == _picked
-                        ? Colors.red.shade100
-                        : null,
-            child: ListTile(
-              title: Text(q.options[k]),
-              onTap: _picked != null
-                  ? null
-                  : () => setState(() {
-                        _picked = k;
-                        if (k == q.answer) _score++;
-                      }),
-            ),
-          ),
-        if (_picked != null) ...[
-          const SizedBox(height: 8),
-          Text(q.explanation),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => setState(() {
-              _i++;
-              _picked = null;
-            }),
-            child: Text(_i == qs.length - 1 ? 'Finish' : 'Next'),
-          ),
-        ],
-      ]),
-    );
-  }
-}
+      appBar: AppBar(tit
