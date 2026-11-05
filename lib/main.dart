@@ -199,4 +199,42 @@ class _QuizScreenState extends State<QuizScreen> {
     }
     final q = qs[_i];
     return Scaffold(
-      appBar: AppBar(tit
+      appBar: AppBar(title: Text('Question ${_i + 1} / ${qs.length}')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Text(q.question, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        for (var k = 0; k < q.options.length; k++)
+          Card(
+            color: _picked == null
+                ? null
+                : k == q.answer
+                    ? Colors.green.shade100
+                    : k == _picked
+                        ? Colors.red.shade100
+                        : null,
+            child: ListTile(
+              title: Text(q.options[k]),
+              onTap: _picked != null
+                  ? null
+                  : () => setState(() {
+                        _picked = k;
+                        if (k == q.answer) _score++;
+                      }),
+            ),
+          ),
+        if (_picked != null) ...[
+          const SizedBox(height: 8),
+          Text(q.explanation),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () => setState(() {
+              _i++;
+              _picked = null;
+            }),
+            child: Text(_i == qs.length - 1 ? 'Finish' : 'Next'),
+          ),
+        ],
+      ]),
+    );
+  }
+}
