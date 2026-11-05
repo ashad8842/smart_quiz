@@ -1,0 +1,16 @@
+name: smart_quiz
+description: Quiz app with AI question generation from prompt or photo.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  image_picker: ^1.1.0
+
+flutter:
+  uses-material-design: true
